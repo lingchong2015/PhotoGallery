@@ -1,5 +1,6 @@
 package com.dirk41.photogallery;
 
+import android.content.Context;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
@@ -10,6 +11,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.GridView;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 import com.handmark.pulltorefresh.library.PullToRefreshBase;
@@ -29,6 +31,8 @@ public class PhotoGalleryFragment extends Fragment {
     private FetchItemTask mFetchItemTask;
     private int mPage = 1;
 
+    private ThumbnailDownloader<ImageView> mThumbnailThread;
+
     private static final String TAG = "PhotoGalleryFragment";
 
     @Override
@@ -38,6 +42,11 @@ public class PhotoGalleryFragment extends Fragment {
         setRetainInstance(true);
         mFetchItemTask = new FetchItemTask();
         mFetchItemTask.execute();
+
+        mThumbnailThread = new ThumbnailDownloader<>();
+        mThumbnailThread.start();
+        mThumbnailThread.getLooper();
+        Log.i(TAG, "Background thread start...");
     }
 
     @Nullable
@@ -86,9 +95,29 @@ public class PhotoGalleryFragment extends Fragment {
         }
 
         if (mGalleryItemArrayList != null) {
-            mGridView.setAdapter(new ArrayAdapter<GalleryItem>(getActivity(), android.R.layout.simple_gallery_item, mGalleryItemArrayList));
+//            mGridView.setAdapter(new ArrayAdapter<GalleryItem>(getActivity(), android.R.layout.simple_gallery_item, mGalleryItemArrayList));
+            mGridView.setAdapter(new GalleryItemAdapter(getActivity(), 0, mGalleryItemArrayList));
         } else {
             mGridView.setAdapter(null);
+        }
+    }
+
+    private class GalleryItemAdapter extends ArrayAdapter<GalleryItem> {
+
+        public GalleryItemAdapter(Context context, int resource, ArrayList<GalleryItem> objects) {
+            super(context, resource, objects);
+        }
+
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+            if (convertView == null) {
+                convertView = getActivity().getLayoutInflater().inflate(R.layout.gallery_item_imageview, parent, false);
+            }
+
+            ImageView imageView = (ImageView) convertView.findViewById(R.id.gallery_image_view);
+            imageView.setImageResource(R.drawable.acmilan);
+
+            return convertView;
         }
     }
 
