@@ -3,7 +3,6 @@ package com.dirk41.photogallery;
 import android.content.Context;
 import android.net.Uri;
 import android.util.Log;
-import android.widget.Toast;
 
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
@@ -20,15 +19,18 @@ import java.util.ArrayList;
 /**
  * Created by lingchong on 15-9-25.
  */
-public class FlickFetchr {
+public class FlickrFetchr {
     public static final String TAG = "FlickFetchr";
+    public static final String PREF_SEARCH_QUERY = "searchQuery";
 
     private static final String ENDPOINT = "https://api.flickr.com/services/rest/";
     private static final String API_KEY = "7de4766621de70a17c5ebbd6dffe618f";
     private static final String METHOD_GET_RECENT = "flickr.photos.getRecent";
+    private static final String METHOD_SEARCH = "flickr.photos.search";
     private static final String PARAM_EXTRAS = "extras";
     private static final String EXTRA_SMALL = "url_s";
-    private static final String PER_PAGE = "300";
+    private static final String PER_PAGE = "20";
+    private static final String PARAM_TEXT = "text";
 
     private static final String XML_PHOTO = "photo";
 
@@ -61,17 +63,10 @@ public class FlickFetchr {
         return new String(getUrlBytes(urlString));
     }
 
-    public ArrayList<GalleryItem> fetchItems(Context context, int page) {
+    public ArrayList<GalleryItem> downloadGalleryItems(String url) {
         ArrayList<GalleryItem> galleryItemArrayList = new ArrayList<>();
 
         try {
-            String url = Uri.parse(ENDPOINT).buildUpon()
-                    .appendQueryParameter("method", METHOD_GET_RECENT)
-                    .appendQueryParameter("api_key", API_KEY)
-                    .appendQueryParameter(PARAM_EXTRAS, EXTRA_SMALL)
-                    .appendQueryParameter("per_page", PER_PAGE)
-                    .appendQueryParameter("page", String.valueOf(page))
-                    .build().toString();
             Log.i(TAG, url);
             String xmlString = getUrl(url);
             Log.i(TAG, "Received xml: " + xmlString);
@@ -87,6 +82,30 @@ public class FlickFetchr {
         }
 
         return galleryItemArrayList;
+    }
+
+    public ArrayList<GalleryItem> fetchItems(Context context, int page) {
+        String url = Uri.parse(ENDPOINT).buildUpon()
+                .appendQueryParameter("method", METHOD_GET_RECENT)
+                .appendQueryParameter("api_key", API_KEY)
+                .appendQueryParameter(PARAM_EXTRAS, EXTRA_SMALL)
+                .appendQueryParameter("per_page", PER_PAGE)
+                .appendQueryParameter("page", String.valueOf(page))
+                .build().toString();
+
+        return downloadGalleryItems(url);
+    }
+
+    public ArrayList<GalleryItem> search(String query) {
+        String url = Uri.parse(ENDPOINT).buildUpon()
+                .appendQueryParameter("method", METHOD_SEARCH)
+                .appendQueryParameter("api_key", API_KEY)
+                .appendQueryParameter(PARAM_EXTRAS, EXTRA_SMALL)
+                .appendQueryParameter(PARAM_TEXT, query)
+                .appendQueryParameter("per_page", PER_PAGE)
+                .build().toString();
+
+        return downloadGalleryItems(url);
     }
 
     private void parseItems(ArrayList<GalleryItem> galleryItemArrayList, XmlPullParser xmlPullParser) throws IOException, XmlPullParserException {

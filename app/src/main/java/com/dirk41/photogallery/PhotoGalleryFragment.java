@@ -1,25 +1,40 @@
 package com.dirk41.photogallery;
 
+import android.annotation.TargetApi;
+import android.app.Activity;
+import android.app.SearchManager;
+import android.app.SearchableInfo;
+import android.content.ComponentName;
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.Color;
+import android.graphics.Typeface;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.preference.PreferenceManager;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
+import android.support.v4.view.MenuItemCompat;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.GridView;
 import android.widget.ImageView;
+import android.widget.SearchView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.handmark.pulltorefresh.library.PullToRefreshBase;
 import com.handmark.pulltorefresh.library.PullToRefreshGridView;
 
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.LinkedList;
 
 /**
  * Created by lingchong on 15-9-25.
@@ -40,13 +55,28 @@ public class PhotoGalleryFragment extends Fragment {
         super.onCreate(savedInstanceState);
 
         setRetainInstance(true);
-        mFetchItemTask = new FetchItemTask();
-        mFetchItemTask.execute();
+        setHasOptionsMenu(true);
 
-        mThumbnailThread = new ThumbnailDownloader<>();
+        updateItems();
+
+        mThumbnailThread = new ThumbnailDownloader<>(new Handler());
+        mThumbnailThread.setListener(new ThumbnailDownloader.Listener<ImageView>() {
+
+            @Override
+            public void onThumbnailDownloaded(ImageView imageView, Bitmap bitmap) {
+                if (isVisible()) {
+                    imageView.setImageBitmap(bitmap);
+                }
+            }
+        });
         mThumbnailThread.start();
         mThumbnailThread.getLooper();
         Log.i(TAG, "Background thread start...");
+    }
+
+    public void updateItems() {
+        mFetchItemTask = new FetchItemTask();
+        mFetchItemTask.execute();
     }
 
     @Nullable
@@ -116,6 +146,8 @@ public class PhotoGalleryFragment extends Fragment {
 
             ImageView imageView = (ImageView) convertView.findViewById(R.id.gallery_image_view);
             imageView.setImageResource(R.drawable.acmilan);
+            GalleryItem galleryItem = getItem(position);
+            mThumbnailThread.queueThumbnail(imageView, galleryItem.getUrl());
 
             return convertView;
         }
@@ -131,7 +163,20 @@ public class PhotoGalleryFragment extends Fragment {
 //            } catch (IOException e) {
 //                e.printStackTrace();
 //            }
-            return new FlickFetchr().fetchItems(getActivity(), mPage);
+
+//            String query = "android";//Just for testing
+            Activity parent = getActivity();
+            if (parent == null) {
+                return new ArrayList<GalleryItem>();
+            }
+
+            String query = PreferenceManager.getDefaultSharedPreferences(parent).getString(FlickrFetchr.PREF_SEARCH_QUERY, null);
+
+            if (query != null) {
+                return new FlickrFetchr().search(query);
+            } else {
+                return new FlickrFetchr().fetchItems(getActivity(), mPage);
+            }
 
 //            return null;
         }
@@ -141,6 +186,59 @@ public class PhotoGalleryFragment extends Fragment {
             mGalleryItemArrayList = galleryItemArrayList;
             setupAdapter();
             mPullToRefreshGridView.onRefreshComplete();
+        }
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        mThumbnailThread.quit();
+        Log.i(TAG, "Background thread destroyed...");
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        mThumbnailThread.clearQueue();
+    }
+
+    @Override
+    @TargetApi(11)
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        super.onCreateOptionsMenu(menu, inflater);
+        inflater.inflate(R.menu.fragment_photo_gallery, menu);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+            MenuItem searchItem = menu.findItem(R.id.menu_item_search);
+            SearchView searchView = (SearchView) searchItem.getActionView();
+
+            SearchManager searchManager = (SearchManager) getActivity().getSystemService(Context.SEARCH_SERVICE);
+            ComponentName componentName = getActivity().getComponentName();
+            SearchableInfo searchableInfo = searchManager.getSearchableInfo(componentName);
+
+            searchView.setSearchableInfo(searchableInfo);
+            int id = searchView.getContext().getResources().getIdentifier("android:id/search_src_text", null, null);
+            TextView textView = (TextView) searchView.findViewById(id);
+            textView.setTextColor(Color.parseColor("#ffb7b7"));
+            textView.setHighlightColor(Color.WHITE);
+        }
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.menu_item_search:
+//                getActivity().onSearchRequested();
+                getActivity().startSearch("PhotoGallery", true, null, false);
+                return true;
+            case R.id.menu_item_clear:
+                PreferenceManager.getDefaultSharedPreferences(getActivity())
+                        .edit()
+                        .putString(FlickrFetchr.PREF_SEARCH_QUERY, null)
+                        .commit();
+                updateItems();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
         }
     }
 }
