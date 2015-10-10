@@ -3,6 +3,7 @@ package com.dirk41.photogallery;
 import android.content.Context;
 import android.net.Uri;
 import android.util.Log;
+import android.widget.Toast;
 
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
@@ -96,7 +97,7 @@ public class FlickrFetchr {
         return downloadGalleryItems(url);
     }
 
-    public ArrayList<GalleryItem> search(String query) {
+    public ArrayList<GalleryItem> search(Context context, String query) {
         String url = Uri.parse(ENDPOINT).buildUpon()
                 .appendQueryParameter("method", METHOD_SEARCH)
                 .appendQueryParameter("api_key", API_KEY)
@@ -105,7 +106,10 @@ public class FlickrFetchr {
                 .appendQueryParameter("per_page", PER_PAGE)
                 .build().toString();
 
-        return downloadGalleryItems(url);
+        ArrayList<GalleryItem> galleryItemArrayList = downloadGalleryItems(url);
+        Toast.makeText(context, "The Number of Search Result: " + galleryItemArrayList.size(), Toast.LENGTH_SHORT);
+
+        return galleryItemArrayList;
     }
 
     private void parseItems(ArrayList<GalleryItem> galleryItemArrayList, XmlPullParser xmlPullParser) throws IOException, XmlPullParserException {

@@ -173,7 +173,7 @@ public class PhotoGalleryFragment extends Fragment {
             String query = PreferenceManager.getDefaultSharedPreferences(parent).getString(FlickrFetchr.PREF_SEARCH_QUERY, null);
 
             if (query != null) {
-                return new FlickrFetchr().search(query);
+                return new FlickrFetchr().search(getActivity(), query);
             } else {
                 return new FlickrFetchr().fetchItems(getActivity(), mPage);
             }
