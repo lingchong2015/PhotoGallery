@@ -6,9 +6,9 @@ import android.app.SearchManager;
 import android.app.SearchableInfo;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Color;
-import android.graphics.Typeface;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
@@ -16,7 +16,6 @@ import android.os.Handler;
 import android.preference.PreferenceManager;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
-import android.support.v4.view.MenuItemCompat;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -49,6 +48,7 @@ public class PhotoGalleryFragment extends Fragment {
     private ThumbnailDownloader<ImageView> mThumbnailThread;
 
     private static final String TAG = "PhotoGalleryFragment";
+    public static final String MPAGE = "com.dirk41.photogallery.photogalleryfragment.mpage";
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -58,6 +58,10 @@ public class PhotoGalleryFragment extends Fragment {
         setHasOptionsMenu(true);
 
         updateItems();
+
+//        Intent intent = new Intent(getActivity(), PollService.class);
+//        intent.putExtra(MPAGE, mPage);
+//        getActivity().startService(intent);
 
         mThumbnailThread = new ThumbnailDownloader<>(new Handler());
         mThumbnailThread.setListener(new ThumbnailDownloader.Listener<ImageView>() {
@@ -173,9 +177,9 @@ public class PhotoGalleryFragment extends Fragment {
             String query = PreferenceManager.getDefaultSharedPreferences(parent).getString(FlickrFetchr.PREF_SEARCH_QUERY, null);
 
             if (query != null) {
-                return new FlickrFetchr().search(getActivity(), query);
+                return new FlickrFetchr().search(query, mPage);
             } else {
-                return new FlickrFetchr().fetchItems(getActivity(), mPage);
+                return new FlickrFetchr().fetchItems(mPage);
             }
 
 //            return null;
@@ -223,12 +227,14 @@ public class PhotoGalleryFragment extends Fragment {
         }
     }
 
+    @TargetApi(11)
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.menu_item_search:
 //                getActivity().onSearchRequested();
                 getActivity().startSearch("PhotoGallery", true, null, false);
+
                 return true;
             case R.id.menu_item_clear:
                 PreferenceManager.getDefaultSharedPreferences(getActivity())
@@ -236,9 +242,31 @@ public class PhotoGalleryFragment extends Fragment {
                         .putString(FlickrFetchr.PREF_SEARCH_QUERY, null)
                         .commit();
                 updateItems();
+
+                return true;
+            case R.id.menu_item_toggle_polling:
+                boolean shouldStartAlarm = !PollService.isServiceAlarmOn(getActivity());
+                PollService.setServiceAlarm(getActivity(), shouldStartAlarm);
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+                    getActivity().invalidateOptionsMenu();
+                }
+
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
+        }
+    }
+
+    @Override
+    public void onPrepareOptionsMenu(Menu menu) {
+        super.onPrepareOptionsMenu(menu);
+
+        MenuItem menuItem = menu.findItem(R.id.menu_item_toggle_polling);
+        if (PollService.isServiceAlarmOn(getActivity())) {
+            menuItem.setTitle(R.string.stop_polling);
+        } else {
+            menuItem.setTitle(R.string.start_polling);
         }
     }
 }

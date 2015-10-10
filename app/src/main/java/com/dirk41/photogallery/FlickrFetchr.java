@@ -22,7 +22,9 @@ import java.util.ArrayList;
  */
 public class FlickrFetchr {
     public static final String TAG = "FlickFetchr";
+
     public static final String PREF_SEARCH_QUERY = "searchQuery";
+    public static final String PREF_LAST_RESULT_ID = "lastResultId";
 
     private static final String ENDPOINT = "https://api.flickr.com/services/rest/";
     private static final String API_KEY = "7de4766621de70a17c5ebbd6dffe618f";
@@ -85,7 +87,7 @@ public class FlickrFetchr {
         return galleryItemArrayList;
     }
 
-    public ArrayList<GalleryItem> fetchItems(Context context, int page) {
+    public ArrayList<GalleryItem> fetchItems(int page) {
         String url = Uri.parse(ENDPOINT).buildUpon()
                 .appendQueryParameter("method", METHOD_GET_RECENT)
                 .appendQueryParameter("api_key", API_KEY)
@@ -97,17 +99,17 @@ public class FlickrFetchr {
         return downloadGalleryItems(url);
     }
 
-    public ArrayList<GalleryItem> search(Context context, String query) {
+    public ArrayList<GalleryItem> search(String query, int page) {
         String url = Uri.parse(ENDPOINT).buildUpon()
                 .appendQueryParameter("method", METHOD_SEARCH)
                 .appendQueryParameter("api_key", API_KEY)
                 .appendQueryParameter(PARAM_EXTRAS, EXTRA_SMALL)
                 .appendQueryParameter(PARAM_TEXT, query)
                 .appendQueryParameter("per_page", PER_PAGE)
+                .appendQueryParameter("page", String.valueOf(page))
                 .build().toString();
 
         ArrayList<GalleryItem> galleryItemArrayList = downloadGalleryItems(url);
-        Toast.makeText(context, "The Number of Search Result: " + galleryItemArrayList.size(), Toast.LENGTH_SHORT);
 
         return galleryItemArrayList;
     }
