@@ -123,6 +123,7 @@ public class FlickrFetchr {
                 galleryItem.setCaption(xmlPullParser.getAttributeValue(null, "title"));
                 galleryItem.setId(xmlPullParser.getAttributeValue(null, "id"));
                 galleryItem.setUrl(xmlPullParser.getAttributeValue(null, EXTRA_SMALL));
+                galleryItem.setOwner(xmlPullParser.getAttributeValue(null, "owner"));
                 galleryItemArrayList.add(galleryItem);
             }
 
