@@ -38,7 +38,7 @@ import java.util.ArrayList;
 /**
  * Created by lingchong on 15-9-25.
  */
-public class PhotoGalleryFragment extends Fragment {
+public class PhotoGalleryFragment extends VisibleFragment {
     private GridView mGridView;
     private PullToRefreshGridView mPullToRefreshGridView;
     private ArrayList<GalleryItem> mGalleryItemArrayList;

@@ -1,5 +1,6 @@
 package com.dirk41.photogallery;
 
+import android.app.Activity;
 import android.app.AlarmManager;
 import android.app.IntentService;
 import android.app.Notification;
@@ -23,6 +24,9 @@ public class PollService extends IntentService {
     private static final String TAG = "PollService";
 
     private static final int POLL_INTERVAL = 1000 * 60;
+    public static final String PREF_IS_ALARM_ON = "isAlarmOn";
+    public static final String ACTION_SHOW_NOTIFICATION = "com.dirk41.photogallery.SHOW_NOTIFICATION";
+    public static final String PERM_PRIVATE = "com.dirk41.photogallery.PRIVATE";
 
     public PollService() {
         super(TAG);
@@ -76,13 +80,26 @@ public class PollService extends IntentService {
                     .setAutoCancel(true)
                     .build();
 
-            NotificationManager notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-            notificationManager.notify(0, notification);
+//            NotificationManager notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+//            notificationManager.notify(0, notification);
+
+//            sendBroadcast(new Intent(ACTION_SHOW_NOTIFICATION));
+//            sendBroadcast(new Intent(ACTION_SHOW_NOTIFICATION), PERM_PRIVATE);
+
+            showBackgroundNotification(0, notification);
         }
 
         sharedPreferences.edit()
                 .putString(FlickrFetchr.PREF_LAST_RESULT_ID, currentResultId)
                 .commit();
+    }
+
+    private void showBackgroundNotification(int requestCode, Notification notification) {
+        Intent intent = new Intent(ACTION_SHOW_NOTIFICATION);
+        intent.putExtra("REQUEST_CODE", requestCode);
+        intent.putExtra("NOTIFICATION", notification);
+
+        sendOrderedBroadcast(intent, PERM_PRIVATE, null, null, Activity.RESULT_OK, null, null);
     }
 
     public static void setServiceAlarm(Context context, boolean isOn) {
@@ -97,6 +114,11 @@ public class PollService extends IntentService {
             alarmManager.cancel(pendingIntent);
             pendingIntent.cancel();
         }
+
+        PreferenceManager.getDefaultSharedPreferences(context)
+                .edit()
+                .putBoolean(PREF_IS_ALARM_ON, isOn)
+                .commit();
     }
 
     public static boolean isServiceAlarmOn(Context context) {
